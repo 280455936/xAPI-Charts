@@ -1,0 +1,139 @@
+<!doctype html>
+<html>
+<head>
+    <link rel="stylesheet" href="bootstrap-3.3.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="xAPI-Dashboard/lib/nv.d3.css">
+    <script type="text/javascript" src="jquery-1.11.1.min.js"></script>
+    <script type="text/javascript" src="bootstrap-3.3.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="xAPI-Dashboard/lib/d3.v3.js" charset="utf-8"></script>
+	<script type="text/javascript" src="xAPI-Dashboard/lib/nv.d3.js"></script>
+	<script type="text/javascript" src="xAPI-Dashboard/lib/xapiwrapper.min.js"></script>
+	<script type="text/javascript" src="xAPI-Dashboard/src/chart.js"></script>
+	<script type="text/javascript" src="xAPI-Dashboard/src/dashboard.js"></script>
+	<script type="text/javascript" src="xAPI-Dashboard/src/xapicollection.js"></script>
+<!--
+    <script type="text/javascript" src="xAPI-Dashboard/dist/xapidashboard.min.js"></script>
+    <script type="text/javascript" src="xAPI-Dashboard/dist/xapicollection.min.js"></script>
+-->
+    <script type="text/javascript" src="jobaiddata.js"></script>
+    <style type="text/css">
+        body
+        {
+            width: 1300px;
+            padding-left: 20px;
+        }
+        
+        svg
+        {
+            width: 600px;
+            height: 400px;
+        }
+        
+        .shadow
+        {
+            border: 1px solid #DDD;
+            border-spacing: 3px;
+            -webkit-box-shadow: 5px 5px 20px #AAA;
+	           -moz-box-shadow: 5px 5px 20px #AAA;
+	                box-shadow: 5px 5px 20px #AAA;
+            
+        }
+        
+        .bar,
+        .circle
+        {
+            padding-top: 20px;
+            padding-right: 20px;
+            margin-left: 15px;
+            margin-bottom: 15px;
+            width: 650px;
+            height: 450px;
+        }
+        
+        .bar svg
+        {
+            padding-top: 15px;
+        }
+        
+        .bar div.nvtooltip { margin-top: 30px; }
+        
+        .graphcontainer
+        {
+            display: flex;
+        }
+        
+/*        #actorbar div.nvtooltip { margin-left:600px };*/
+    </style>
+</head>
+<body>
+    <h1>Beacon Activity</h1>
+    <h4>Total # of times beacon was sighted</h4>
+    <div class="graphcontainer">
+        <div class="shadow bar">
+            <svg id="beaconactivity"></svg>
+        </div>
+        <div class="shadow bar">    
+            <svg id="actorbar"></svg>
+        </div>
+    </div>
+    <script type="text/javascript">
+        var wrapper = ADL.XAPIWrapper;
+        wrapper.changeConfig({endpoint:"https://lrs.adlnet.gov/xapi/"});
+        var dash = new ADL.XAPIDashboard();
+        dash.fetchAllStatements(
+                {'activity':'http://tom.example.com/xapi/context/categories/beacons',
+                 'verb':"http://tom.example.com/xapi/verbs/beacons/entered",
+                 'related_activities':'true'},
+                function() {drawCharts();});
+        
+        function drawCharts() {
+            d3.select('svg').empty();
+            graphBeaconActivity(); 
+        }
+        
+        function graphBeaconActivity() {
+            var activityActivitiesBar = dash.createBarChart({
+                container: '#beaconactivity',
+                groupBy: 'object.id',
+                aggregate: ADL.count(),
+                customize: function (chart) {
+                    chart.xAxis.rotateLabels(45);
+                    chart.xAxis.tickFormat(function(d){
+                        var coll = new ADL.Collection(dash.data.contents.slice(0));
+                        var contents = coll.where('object.id = "'+ d +'"').contents;
+                        if (contents.length > 0)
+                        {
+                            var s = contents[0];
+                            if (s.object.definition &&
+                                s.object.definition.name && 
+                                s.object.definition.name["en-US"]) {
+                                return s.object.definition.name["en-US"]
+                            }
+                        }
+                        return /[^\/]+$/.exec(d)[0];});
+                },
+                child: actorBar 
+            });
+            activityActivitiesBar.clear();
+            activityActivitiesBar.draw();
+        }
+        
+        var actorBar = dash.createBarChart({
+                container: "#actorbar",
+                groupBy: "actor.mbox",
+                pre: function (data, event) {
+                    return data.where('object.id = "' + event.in + '"');
+                },
+                aggregate: ADL.count(),
+                customize: function(c) { 
+                    c.xAxis.rotateLabels(45);
+                    c.xAxis.tickFormat(function(d){
+                        var coll = new ADL.Collection(dash.data.contents.slice(0));
+                        var contents = coll.where('actor.mbox = "'+ d +'"').contents;
+                        return contents[0].actor.name;
+                    });
+                }
+            });
+    </script>
+</body>
+</html>
