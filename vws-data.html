@@ -3,104 +3,125 @@
 <head>
     <link rel="stylesheet" href="bootstrap-3.3.0/css/bootstrap.min.css">
     <link rel="stylesheet" href="xAPI-Dashboard/lib/nv.d3.css">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="timeline.css">
     <script type="text/javascript" src="jquery-1.11.1.min.js"></script>
-    <style>
-    .matbox
+    <script type="text/javascript" src="bootstrap-3.3.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="xAPI-Dashboard/lib/d3.v3.js" charset="utf-8"></script>
+	<script type="text/javascript" src="xAPI-Dashboard/lib/nv.d3.js"></script>
+	<script type="text/javascript" src="xAPI-Dashboard/lib/xapiwrapper.min.js"></script>
+	<script type="text/javascript" src="xAPI-Dashboard/src/chart.js"></script>
+	<script type="text/javascript" src="xAPI-Dashboard/src/dashboard.js"></script>
+	<script type="text/javascript" src="xAPI-Dashboard/src/xapicollection.js"></script>
+<!--
+    <script type="text/javascript" src="xAPI-Dashboard/dist/xapidashboard.min.js"></script>
+    <script type="text/javascript" src="xAPI-Dashboard/dist/xapicollection.min.js"></script>
+-->
+<style>
+.bar
     {
-/*
-        padding-top: 60px;
-        padding-right: 20px;
-*/
-        padding: 0;
-        display: table;
-        margin: auto;
-        width: 650px;
-        height: 350px;
+        width: 100%;
+        padding-left: 1.75em;
+        overflow: scroll;
     }
-    .shadow
-    {
-        border: 1px solid #DDD;
-        border-spacing: 3px;
-        -webkit-box-shadow: 5px 5px 20px #AAA;
-           -moz-box-shadow: 5px 5px 20px #AAA;
-                box-shadow: 5px 5px 20px #AAA;
-
-    }
-    .jumbotron
-    {
-        background: #85BFDB;
-        text-align: center;
-    }
-    .panel-heading {
-        overflow: hidden;
-        background-size: cover;
-        background-position: center;
-        background:url("images/vwsbx.png") no-repeat center top;
-    }
-        
-    .card {
-      box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.16), 0 2px 10px 0 rgba(0, 0, 0, 0.12);
-    }
-
-    .card {
-      margin-top: 10px;
-      box-sizing: border-box;
-      border-radius: 2px;
-      background-clip: padding-box;
-    }
-    .card span.card-title {
-        color: #fff;
-        font-size: 24px;
-        font-weight: 300;
-        text-transform: uppercase;
-    }
-
-    .card .card-image {
-      position: relative;
-      overflow: hidden;
-    }
-    .card .card-image img {
-      border-radius: 2px 2px 0 0;
-      background-clip: padding-box;
-      position: relative;
-      z-index: -1;
-    }
-    .card .card-image span.card-title {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      padding: 16px;
-    }
-    .card .card-content {
-      padding: 16px;
-      border-radius: 0 0 2px 2px;
-      background-clip: padding-box;
-      box-sizing: border-box;
-    }
-    .card .card-content p {
-      margin: 0;
-      color: inherit;
-    }
-    .card .card-content span.card-title {
-      line-height: 48px;
-    }
-    .card .card-action {
-      border-top: 1px solid rgba(160, 160, 160, 0.2);
-      padding: 16px;
-    }
-    .card .card-action a {
-      color: #ffab40;
-      margin-right: 16px;
-      transition: color 0.3s ease;
-      text-transform: uppercase;
-    }
-    .card .card-action a:hover {
-      color: #ffd8a6;
-      text-decoration: none;
-    }
-    </style>
+</style>
 </head>
 <body>
-hi
+    <div class="container">
+        <h1>Sandbox Activity</h1>
+    </div>
+    
+    <script type="text/javascript">
+        if(!Object.keys) Object.keys = function(o){
+           if (o !== Object(o))
+              throw new TypeError('Object.keys called on non-object');
+           var ret=[],p;
+           for(p in o) if(Object.prototype.hasOwnProperty.call(o,p)) ret.push(p);
+           return ret;
+        }
+        var wrapper = ADL.XAPIWrapper;
+        wrapper.changeConfig({endpoint:"https://lrs.adlnet.gov/xapi/"});
+        var dash = new ADL.XAPIDashboard();
+        
+        var tlstmts = [];
+        ADL.XAPIWrapper.getStatements(
+            {'activity':'http://vwf.adlnet.gov/xapi/profile',
+             'related_activities':'true'}, null, 
+             function getmore(r) {
+                 var res = JSON.parse(r.response);
+                 tlstmts = tlstmts.concat(res.statements);
+                 if (res.more && res.more !== "") {
+                     ADL.XAPIWrapper.getStatements(null, res.more, getmore);
+                 }
+                 else {
+                     makeTimeline(sortStmts());
+                 }
+             });
+        
+        function sortStmts() {
+            var sorted = {};
+            for ( idx in tlstmts ) {
+                var s = tlstmts[idx];
+                var key;
+                try {
+                    key = s.context.contextActivities.other[0].id;
+                }
+                catch (e) {
+                    key = s.object.id;
+                }
+                var oo = sorted[key];
+                if (oo) {
+                    oo.push(s);
+                }
+                else {
+                    sorted[key] = [s];
+                }
+            }
+            return sorted;
+        }
+        
+        function makeTimeline(sorted) {
+            var id = "";
+            for ( didx in sorted ) {
+                id = /[^\/]+$/.exec(didx)[0];
+                $('div.container').append(getBox(id));
+                for ( idx in sorted[didx] ) {
+                    writeTLEvent(id, sorted[didx][idx]);
+                }
+            }
+        }
+        
+        // http://bootsnipp.com/snippets/featured/single-column-timeline-collapsed
+        function writeTLEvent(id, stmt) {
+            var glyph = "glyphicon-log-out";
+            var badge_dec = "danger";
+            var huh = '<li>' +
+              '<div class="timeline-badge ' + badge_dec + '"><i class="glyphicon ' + glyph + '"></i></div>' +
+                  '<div class="timeline-panel">' +
+                    '<div class="timeline-heading">' +
+                      '<h4 class="timeline-title">' + 
+                            stmt.actor.name + ' ' + 
+                            stmt.verb.display['en-US'] + ' ' + 
+                            ((stmt.object.definition  == undefined || stmt.object.definition.name == undefined) ? stmt.object.id : stmt.object.definition.name['en-US']) + 
+                        '</h4>'+
+                    '</div>' +
+              '</div>' +
+            '</li>';
+            console.log(huh);
+            $('div#'+id+' div.timeline-group ul#timeline').append(huh);
+        }
+        
+        function getBox(id) {
+            return '<div class="row">' + 
+                '<div class="col-md-10 col-md-offset-1">' + 
+                    '<div id="'+id+'" class="shadow bar">' + 
+                        '<div class="timeline-group">' + 
+                            '<ul id="timeline" class="timeline"></ul>' + 
+                        '</div>' + 
+                    '</div>' + 
+                '</div>' + 
+            '</div>';
+        }
+    </script>
 </body>
-</head>
+</html>
