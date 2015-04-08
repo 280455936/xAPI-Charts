@@ -62,16 +62,15 @@
             var sorted = {};
             for ( idx in tlstmts ) {
                 var s = tlstmts[idx];
-                var key;
                 try {
-                    key = s.context.contextActivities.other[0].id;
+                    var key = s.context.contextActivities.other[0].id;
                 }
                 catch (e) {
-                    key = s.object.id;
+                    var key = s.object.id;
                 }
-                var oo = sorted[key];
-                if (oo) {
-                    oo.push(s);
+                
+                if (sorted[key]) {
+                    sorted[key].push(s);
                 }
                 else {
                     sorted[key] = [s];
