@@ -18,16 +18,22 @@
     <script type="text/javascript" src="xAPI-Dashboard/dist/xapicollection.min.js"></script>
 -->
 <style>
+ul {
+    overflow: auto;
+}
 .bar
     {
         width: 100%;
+    }
+.timline-box
+    {
         padding-left: 1.75em;
         overflow: scroll;
     }
 </style>
 </head>
 <body>
-    <div class="container">
+    <div class="main">
         <h1>Sandbox Activity</h1>
     </div>
     
@@ -83,7 +89,7 @@
             var id = "";
             for ( didx in sorted ) {
                 id = /[^\/]+$/.exec(didx)[0];
-                $('div.container').append(getBox(id));
+                $('div.main').append(getBox(id));
                 for ( idx in sorted[didx] ) {
                     writeTLEvent(id, sorted[didx][idx]);
                 }
@@ -107,13 +113,18 @@
               '</div>' +
             '</li>';
             console.log(huh);
-            $('div#'+id+' div.timeline-group ul#timeline').append(huh);
+            $('div#'+id+'-timeline div.timeline-group ul#timeline').append(huh);
         }
         
         function getBox(id) {
-            return '<div class="row">' + 
-                '<div class="col-md-10 col-md-offset-1">' + 
-                    '<div id="'+id+'" class="shadow bar">' + 
+            return '<div class="row shadow bar">' +
+                '<div class="col-md-3">' +
+                    '<div id="'+id+'-stats">' +
+                        '<h4>World ' + id + '</h4>' + 
+                    '</div>' +
+                '</div>' +
+                '<div class="col-md-9">' + 
+                    '<div id="'+id+'-timeline" class="timline-box">' + 
                         '<div class="timeline-group">' + 
                             '<ul id="timeline" class="timeline"></ul>' + 
                         '</div>' + 
