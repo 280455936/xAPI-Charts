@@ -61,7 +61,8 @@ ul {
         var tlstmts = [];
         ADL.XAPIWrapper.getStatements(
             {'activity':'http://vwf.adlnet.gov/xapi/profile',
-             'related_activities':'true'}, null, 
+             'related_activities':'true',
+             'since': new Date(Date.now() - 1000*60*60*24*15).toISOString()}, null, 
              function getmore(r) {
                  var res = JSON.parse(r.response);
                  tlstmts = tlstmts.concat(res.statements);
