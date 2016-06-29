@@ -41,7 +41,7 @@
         $('#alchemy').append('<div id="loading"><img id="loadingimg" src="./img/loading.gif"> <h1 style="color: #f4f4f4; text-align: center">Loading<h1></div>');
 
         var stmts = [],
-            iterations = 10;
+            iterations = 1;
         ADL.XAPIWrapper.getStatements(null,null, function getMore(r) {
             if (iterations-- <= 0) drawStuff(getConf(getData(stmts)));
             else {
