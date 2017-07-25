@@ -104,7 +104,10 @@
         };
 
         var getActorId = function (a) {
-//            console.log(JSON.stringify(a));
+           // console.log(JSON.stringify(a));
+           if (a.objectType == "Group"){
+                return a.name || "anon-group";
+           }
             return a.mbox || a.openid || a.mbox_sha1sum || a.account.name || "blah";
         };
 
@@ -121,15 +124,20 @@
         };
 
         var setObjectNode = function (o, ns, s) {
-            var ouuid = o.id || getActorId(o);
+            var ouuid;
+            if (o.objectType == "SubStatement") {
+                ouuid = o.object.id || getActorId(o.object);
+            } else {
+                ouuid = o.id || getActorId(o);
+            }
             if (ns[ouuid] !== undefined) return ns[ouuid];
             ns[ouuid] = createNode(ns, getObjectName(o), (o.objectType === "Agent" || o.objectType === "Group") ? 'actor' : 'object', s.id);
             return ns[ouuid];
         };
 
         var getObjectName = function (o) {
-            if (! o.definition ) {
-//                console.log('yipes', o);
+            if (o.objectType == "SubStatement" ) {
+                return o.object.id || getActorId(o.object);
             }
             return getObjDefName(o) || o.name || o.id || getActorId(o);
         };
